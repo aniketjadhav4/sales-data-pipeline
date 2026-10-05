@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+warehouse/*.db
+data/raw/
+data/rejected/
+powerbi_exports/

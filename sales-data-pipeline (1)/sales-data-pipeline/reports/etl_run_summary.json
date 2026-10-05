@@ -1,0 +1,23 @@
+{
+  "source_order_rows": 20300,
+  "duplicate_rows_removed": 252,
+  "region_standardised_rows": 19648,
+  "region_missing_filled_unknown": 400,
+  "rejected_duplicate_order_id": 48,
+  "rejected_missing_customer_id": 200,
+  "rejected_invalid_order_date": 200,
+  "rejected_invalid_quantity": 200,
+  "rejected_orphan_product_id": 200,
+  "rejected_orphan_customer_id": 0,
+  "rows_after_dedup": 20048,
+  "rows_rejected": 840,
+  "rows_clean": 19208,
+  "warehouse_rows": 19208,
+  "warehouse_net_revenue": 995686886.75,
+  "reconciliation": {
+    "rows_balance (source = dup + rejected + loaded)": true,
+    "loaded_rows_match_clean_rows": true,
+    "revenue_matches_between_pipeline_and_warehouse": true,
+    "no_orphan_foreign_keys_in_fact": true
+  }
+}
