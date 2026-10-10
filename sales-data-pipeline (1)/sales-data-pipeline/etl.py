@@ -47,22 +47,34 @@ def transform(customers, products, orders):
     # 3) parse dates (invalid -> NaT)
     orders["order_date"] = pd.to_datetime(orders["order_date"], format="%Y-%m-%d", errors="coerce")
 
+    
     # 4) validation rules -> reject with reason
+    numeric_price = pd.to_numeric(orders["unit_price"], errors="coerce")
+    numeric_discount = pd.to_numeric(orders["discount_pct"], errors="coerce")
+    numeric_quantity = pd.to_numeric(orders["quantity"], errors="coerce")
+
     rules = {
-        "duplicate_order_id": orders.duplicated(subset="order_id", keep="first"),  # same order_id, differing details
+        "duplicate_order_id": orders.duplicated(subset="order_id", keep="first"),
         "missing_customer_id": orders["customer_id"].isna(),
         "invalid_order_date": orders["order_date"].isna(),
-        "invalid_quantity": orders["quantity"].fillna(0) <= 0,
+        "invalid_quantity": numeric_quantity.isna() | (numeric_quantity <= 0),
+        "invalid_unit_price": numeric_price.isna() | (numeric_price < 0),
+        "invalid_discount_pct": (
+            numeric_discount.isna()
+            | ~numeric_discount.between(0, 100)
+        ),
         "orphan_product_id": ~orders["product_id"].isin(products["product_id"]),
-        "orphan_customer_id": orders["customer_id"].notna() & ~orders["customer_id"].isin(customers["customer_id"]),
+        "orphan_customer_id": (
+            orders["customer_id"].notna()
+            & ~orders["customer_id"].isin(customers["customer_id"])
+        ),
     }
-    reason = pd.Series("", index=orders.index)
-    for name, mask in rules.items():
-        stats[f"rejected_{name}"] = int(mask.sum())
-        reason = reason.where(~(mask & (reason == "")), name)   # first failing rule wins
-    bad = reason != ""
-    rejected_df = orders[bad].assign(reject_reason=reason[bad])
-    clean = orders[~bad].copy()
+
+    # Use validated numeric values in later calculations
+    orders["quantity"] = numeric_quantity
+    orders["unit_price"] = numeric_price
+    orders["discount_pct"] = numeric_discount
+
 
     # 5) derive measures
     clean["customer_id"] = clean["customer_id"].astype(int)
@@ -106,8 +118,11 @@ def load(customers, products, clean):
         "discount_amount": clean["discount_amount"],
         "net_revenue": clean["net_revenue"],
     })
-    with sqlite3.connect(DB) as con:
-        con.executescript((Path("sql") / "schema.sql").read_text())
+    
+with sqlite3.connect(DB) as con:
+    con.execute("PRAGMA foreign_keys = ON")
+    con.executescript((Path("sql") / "schema.sql").read_text())
+
         for name, df in [("dim_customer", dim_customer), ("dim_product", dim_product),
                          ("dim_date", dim_date), ("fact_sales", fact)]:
             df.to_sql(name, con, if_exists="append", index=False)
