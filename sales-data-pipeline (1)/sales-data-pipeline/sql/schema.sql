@@ -1,4 +1,6 @@
 -- Star schema: one fact table, three dimensions
+-- IMPORTANT: Enable foreign-key enforcement in each SQLite connection
+-- using PRAGMA foreign_keys = ON before executing database operations.
 CREATE TABLE dim_customer (
     customer_key  INTEGER PRIMARY KEY,
     customer_name TEXT NOT NULL,
